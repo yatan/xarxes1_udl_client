@@ -73,7 +73,7 @@ struct PDU_tcp
     char info[80];
 };
 
-int main(int argc, char **argv)
+void lectura_configuracio()
 {
     FILE *fp;
     char line_buffer[50];
@@ -125,8 +125,6 @@ int main(int argc, char **argv)
     clientC.portUDP = atoi(strtok(NULL, " "));
 
 
-
-
     printf("Client %s\n", clientC.id);
     printf("Situation %s\n", clientC.situation);
     printf("Elements %s\n", clientC.elements);
@@ -135,7 +133,11 @@ int main(int argc, char **argv)
     printf("Server ip: %s\n", clientC.ip);
     printf("Server upd port: %i\n", clientC.portUDP);
 
-
     fclose(fp);
+}
+
+int main(int argc, char **argv)
+{
+    lectura_configuracio();
     return 0;
 }
