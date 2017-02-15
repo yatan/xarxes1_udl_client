@@ -8,7 +8,6 @@
 #include <sys/select.h>
 #include <sys/mman.h>
 
-
 /* Tipus paquet subscripcio */
 #define SUBS_REQ 0x00
 #define SUBS_ACK 0x01
@@ -41,15 +40,19 @@
 
 char fitxer_conf[30] = "client.cfg";
 
+/* Variables del client obtinguts a partir
+ * del fitxer de configuracio */
 struct client
 {
-    char id[8];
-    char situation[12];
-    char mac[12];
-    char ip[15];
+    char id[9];
+    char situation[13];
+    char elements[8];
+    char mac[13];
+    char ip[16];
     int portTCP;
     int portUDP;
-};
+}clientC;
+
 
 struct element
 {
@@ -73,17 +76,9 @@ struct PDU_tcp
 int main(int argc, char **argv)
 {
     FILE *fp;
-    char line_buffer[BUFSIZ];
+    char line_buffer[50];
 
-    char identificador[8];
-    char situation[12];
-    char elements[7];
-    char MAC[12];
-    int local_tcp;
-    char server_ip[15];
-    int server_udp;
-
-
+    memset(&clientC,0,sizeof(struct client));
 
     fp = fopen(fitxer_conf,"r");
     if(fp == NULL)
@@ -95,51 +90,50 @@ int main(int argc, char **argv)
     /* Name */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(identificador,strtok(NULL, " "), 9);
+    strxfrm(clientC.id,strtok(NULL, " "), 9);
 
 
     /* Situation */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(situation,strtok(NULL, " "), 13);
+    strxfrm(clientC.situation,strtok(NULL, " "), 13);
 
 
     /* Elements */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(elements,strtok(NULL, " "), 8);
+    strxfrm(clientC.elements,strtok(NULL, " "), 8);
 
     /* MAC */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(MAC,strtok(NULL, " "), 13);
+    strxfrm(clientC.mac,strtok(NULL, " "), 13);
 
     /* Local-TCP */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    local_tcp = atoi(strtok(NULL, " "));
+    clientC.portTCP = atoi(strtok(NULL, " "));
 
     /* Server IP */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    server_ip[strlen(server_ip) - 1] = '\0';
-    /* Al tenir direccions on no es posen tots els numeros, el valor es variable */
-    strxfrm(server_ip,strtok(NULL, " "), 16);
-
+    strxfrm(clientC.ip,strtok(NULL, " "), 16);
 
     /* Server UDP port */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    server_udp = atoi(strtok(NULL, " "));
+    clientC.portUDP = atoi(strtok(NULL, " "));
 
 
-    printf("Client %s\n", identificador);
-    printf("Situation %s\n", situation);
-    printf("Elements %s\n", elements);
-    printf("MAC %s\n", MAC);
-    printf("Local TCP Port: %i\n", local_tcp);
-    printf("Server ip: %s\n", server_ip);
-    printf("Server upd port: %i\n", server_udp);
+
+
+    printf("Client %s\n", clientC.id);
+    printf("Situation %s\n", clientC.situation);
+    printf("Elements %s\n", clientC.elements);
+    printf("MAC %s\n", clientC.mac);
+    printf("Local TCP Port: %i\n", clientC.portTCP);
+    printf("Server ip: %s\n", clientC.ip);
+    printf("Server upd port: %i\n", clientC.portUDP);
 
 
     fclose(fp);
