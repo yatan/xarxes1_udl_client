@@ -39,13 +39,13 @@
 #define DATA_NACK  0x24
 #define DATA_REJ  0x25
 
+#define LONGDADES 100
 
 char fitxer_conf[30] = "client.cfg";
 
 /* Variables del client obtinguts a partir
  * del fitxer de configuracio */
-struct client
-{
+struct client {
     char id[9];
     char situation[13];
     char elements[8];
@@ -53,20 +53,18 @@ struct client
     char ip[16];
     int portTCP;
     int portUDP;
-}clientC;
+} clientC;
 
 
-struct element
-{
+struct element {
     char magnitud[3];
     char ordinal[1];
     char tipus[1];
 };
-struct element* elements;
+struct element *elements;
 
 /*Estructura de dades TCP*/
-struct PDU_tcp
-{
+struct PDU_tcp {
     unsigned char type;
     char mac[7];
     char aleatori[13];
@@ -75,16 +73,14 @@ struct PDU_tcp
     char info[80];
 };
 
-void lectura_configuracio()
-{
+void lectura_configuracio() {
     FILE *fp;
     char line_buffer[50];
 
-    memset(&clientC,0,sizeof(struct client));
+    memset(&clientC, 0, sizeof(struct client));
 
-    fp = fopen(fitxer_conf,"r");
-    if(fp == NULL)
-    {
+    fp = fopen(fitxer_conf, "r");
+    if (fp == NULL) {
         printf("No es pot obrir el fitxer per registrar dades\n");
     }
 
@@ -92,24 +88,24 @@ void lectura_configuracio()
     /* Name */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(clientC.id,strtok(NULL, " "), 9);
+    strxfrm(clientC.id, strtok(NULL, " "), 9);
 
 
     /* Situation */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(clientC.situation,strtok(NULL, " "), 13);
+    strxfrm(clientC.situation, strtok(NULL, " "), 13);
 
 
     /* Elements */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(clientC.elements,strtok(NULL, " "), 8);
+    strxfrm(clientC.elements, strtok(NULL, " "), 8);
 
     /* MAC */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(clientC.mac,strtok(NULL, " "), 13);
+    strxfrm(clientC.mac, strtok(NULL, " "), 13);
 
     /* Local-TCP */
     fgets(line_buffer, sizeof(line_buffer), fp);
@@ -119,7 +115,7 @@ void lectura_configuracio()
     /* Server IP */
     fgets(line_buffer, sizeof(line_buffer), fp);
     strtok(line_buffer, " ");
-    strxfrm(clientC.ip,strtok(NULL, " "), 16);
+    strxfrm(clientC.ip, strtok(NULL, " "), 16);
 
     /* Server UDP port */
     fgets(line_buffer, sizeof(line_buffer), fp);
@@ -138,34 +134,41 @@ void lectura_configuracio()
     fclose(fp);
 }
 
-void subscripcio()
-{
-    int Descriptor = socket(AF_INET, SOCK_DGRAM, 0);
+void subscripcio() {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     struct hostent *Host;
     int Puerto = 6667;
 
-    Host = gethostbyname ("127.0.0.1");
-    if (Host == NULL)
-    {
-        printf ("Error\n");
+    Host = gethostbyname("localhost");
+    printf("%s", Host->h_name);
+
+    if (Host == NULL) {
+        printf("Error\n");
     }
 
     struct sockaddr_in Direccion;
+    memset(&Direccion, 0, sizeof(struct sockaddr_in));
     Direccion.sin_family = AF_INET;
-    Direccion.sin_addr.s_addr = ((struct in_addr*)(Host->h_addr))->s_addr;
-    Direccion.sin_port = Puerto;
+    Direccion.sin_addr.s_addr = (((struct in_addr *) Host->h_addr)->s_addr);
+    Direccion.sin_port = htons(Puerto);
 
-    if (connect (Descriptor, (struct sockaddr *)&Direccion,sizeof (Direccion)) == -1)
-    {
-        printf ("Error\n");
+
+    int a;
+    char dadcli[LONGDADES];
+    /* Paquet per disparar la resposta amb el temps. */
+    strcpy(dadcli, "DUMMY");
+    a = sendto(sock, dadcli, strlen(dadcli) + 1, 0, (struct sockaddr *) &Direccion, sizeof(Direccion));
+    if (a < 0) {
+        fprintf(stderr, "Error al sendto\n");
+        perror("Error ");
+        exit(-2);
     }
 
 }
 
-int main(int argc, char **argv)
-{
-    lectura_configuracio();
+int main(int argc, char **argv) {
+    //lectura_configuracio();
     subscripcio();
     return 0;
 }
