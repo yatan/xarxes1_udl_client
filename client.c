@@ -141,7 +141,6 @@ void subscripcio() {
     int Puerto = 6667;
 
     Host = gethostbyname("localhost");
-    printf("%s\n", Host->h_name);
 
     if (Host == NULL) {
         printf("Error\n");
@@ -164,22 +163,22 @@ void subscripcio() {
         perror("Error ");
         exit(-2);
     }
+    printf("Enviament: %s\n", dadcli);
 
     /* Paquet de resposta amb el temps al servidor */
-    a=recvfrom(sock,dadcli,LONGDADES,0,(struct sockaddr *)0,(int *)0);
-    if(a<0)
-    {
-        fprintf(stderr,"Error al recvfrom\n");
+    a = recvfrom(sock, dadcli, LONGDADES, 0, (struct sockaddr *) 0, (int *) 0);
+    if (a < 0) {
+        fprintf(stderr, "Error al recvfrom\n");
         perror("Error ");
         exit(-2);
     }
-    dadcli[a]='\0';
-    printf("%s\n",dadcli);
+    dadcli[a] = '\0';
+    printf("Resposta: %s\n", dadcli);
 
 }
 
 int main(int argc, char **argv) {
-    //lectura_configuracio();
+    lectura_configuracio();
     subscripcio();
     return 0;
 }
