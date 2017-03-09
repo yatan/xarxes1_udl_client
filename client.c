@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/select.h>
 #include <sys/mman.h>
 
@@ -136,8 +138,34 @@ void lectura_configuracio()
     fclose(fp);
 }
 
+void subscripcio()
+{
+    int Descriptor = socket(AF_INET, SOCK_DGRAM, 0);
+
+    struct hostent *Host;
+    int Puerto = 6667;
+
+    Host = gethostbyname ("127.0.0.1");
+    if (Host == NULL)
+    {
+        printf ("Error\n");
+    }
+
+    struct sockaddr_in Direccion;
+    Direccion.sin_family = AF_INET;
+    Direccion.sin_addr.s_addr = ((struct in_addr*)(Host->h_addr))->s_addr;
+    Direccion.sin_port = Puerto;
+
+    if (connect (Descriptor, (struct sockaddr *)&Direccion,sizeof (Direccion)) == -1)
+    {
+        printf ("Error\n");
+    }
+
+}
+
 int main(int argc, char **argv)
 {
     lectura_configuracio();
+    subscripcio();
     return 0;
 }
