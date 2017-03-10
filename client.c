@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include  <signal.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -42,6 +43,7 @@
 #define LONGDADES 100
 
 char fitxer_conf[30] = "client.cfg";
+unsigned char estat_actual = NOT_SUBSCRIBED;
 
 /* Variables del client obtinguts a partir
  * del fitxer de configuracio */
@@ -72,6 +74,21 @@ struct PDU_tcp {
     char valor[7];
     char info[80];
 };
+
+/*Estructura de dades UDP*/
+struct PDU_udp {
+    unsigned char type;
+    char mac[13];
+    char aleatori[9];
+    char dades[80];
+};
+
+void signalarm(int sig) {
+    signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
+    printf("Alarm !! \n");
+    signal(SIGALRM, signalarm);     /* reinstall the handler    */
+}
+
 
 void lectura_configuracio() {
     FILE *fp;
@@ -139,6 +156,11 @@ void subscripcio() {
 
     struct hostent *Host;
     int Puerto = 6667;
+    struct sockaddr_in Direccion;
+    int a;
+    /* char dadcli[LONGDADES]; */
+    struct PDU_udp enviamentUDP;
+    struct PDU_udp respostaUDP;
 
     Host = gethostbyname("localhost");
 
@@ -146,38 +168,51 @@ void subscripcio() {
         printf("Error\n");
     }
 
-    struct sockaddr_in Direccion;
+    /* Dades connexio socket */
     memset(&Direccion, 0, sizeof(struct sockaddr_in));
     Direccion.sin_family = AF_INET;
     Direccion.sin_addr.s_addr = (((struct in_addr *) Host->h_addr)->s_addr);
     Direccion.sin_port = htons(Puerto);
 
 
-    int a;
-    char dadcli[LONGDADES];
-    /* Paquet per disparar la resposta amb el temps. */
-    strcpy(dadcli, "DUMMY");
-    a = sendto(sock, dadcli, strlen(dadcli) + 1, 0, (struct sockaddr *) &Direccion, sizeof(Direccion));
+    /* Paquet PDU SUBS_REQ */
+    enviamentUDP.type = SUBS_REQ;
+    strcpy(enviamentUDP.mac, "12344566");
+    strcpy(enviamentUDP.aleatori, "0000000");
+    strcpy(enviamentUDP.dades, "");
+
+    /* Paquet iniciar de sincronitzacio amb el servidor */
+    a = sendto(sock, &enviamentUDP, sizeof(enviamentUDP), 0, (struct sockaddr *) &Direccion, sizeof(Direccion));
     if (a < 0) {
         fprintf(stderr, "Error al sendto\n");
         perror("Error ");
         exit(-2);
     }
-    printf("Enviament: %s\n", dadcli);
+    printf("Enviament: %i\n", enviamentUDP.type);
 
-    /* Paquet de resposta amb el temps al servidor */
-    a = recvfrom(sock, dadcli, LONGDADES, 0, (struct sockaddr *) 0, (int *) 0);
+    /* Canvi estat a WAIT_ACK_SUBS */
+    estat_actual = WAIT_ACK_SUBS;
+
+    /* Paquet de resposta amb la confirmacio del servidor */
+    memset(&respostaUDP, 0, sizeof(respostaUDP));
+    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
     if (a < 0) {
         fprintf(stderr, "Error al recvfrom\n");
         perror("Error ");
         exit(-2);
     }
-    dadcli[a] = '\0';
-    printf("Resposta: %s\n", dadcli);
+    /* dadcli[a] = '\0'; */
+    printf("Resposta: %i\n", respostaUDP.type);
 
 }
 
+void registrarAlarma() {
+    /* Registre de la alarma per al timer */
+    signal(SIGALRM, signalarm);
+}
+
 int main(int argc, char **argv) {
+    registrarAlarma();
     lectura_configuracio();
     subscripcio();
     return 0;
