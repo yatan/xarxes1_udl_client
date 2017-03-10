@@ -48,6 +48,18 @@ int debug = 0;
 char fitxer_conf[30] = "client.cfg";
 unsigned char estat_actual = NOT_SUBSCRIBED;
 
+/* Control temporitzacio subscripcio */
+
+int t = 1;
+int u = 3;
+int n = 8;
+int o = 3;
+
+int u_cont = 0;
+int n_cont = 0;
+int o_cont = 0;
+
+
 /* Variables del client obtinguts a partir
  * del fitxer de configuracio */
 struct client {
@@ -88,8 +100,28 @@ struct PDU_udp {
 
 void signalarm(int sig) {
     signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
-    printf("Alarm !! \n");
+    printf("Alarm !! o:%i n:%i \n", o_cont, n_cont);
     signal(SIGALRM, signalarm);     /* reinstall the handler    */
+
+    if (o_cont < o) {
+        if (estat_actual == WAIT_ACK_SUBS && n_cont < n) {
+            /* envia pack subs */
+            n_cont++;
+            alarm(t);
+        } else if (estat_actual == WAIT_ACK_SUBS && n_cont == n) {
+            n_cont++;
+            alarm(u);
+        } else {
+            o_cont++;
+            n_cont = 0;
+            alarm(t);
+        }
+    }
+    else{
+        printf("No s'ha pogut contactar amb el servidor.");
+        exit(-3);
+    }
+
 }
 
 
@@ -182,7 +214,7 @@ void subscripcio() {
     /* Paquet PDU SUBS_REQ */
     enviamentUDP.type = SUBS_REQ;
     strcpy(enviamentUDP.mac, "12344566");
-    strcpy(enviamentUDP.aleatori, "0000000");
+    strcpy(enviamentUDP.aleatori, "00000000");
     strcpy(enviamentUDP.dades, "");
 
     /* Paquet iniciar de sincronitzacio amb el servidor */
@@ -196,6 +228,7 @@ void subscripcio() {
 
     /* Canvi estat a WAIT_ACK_SUBS */
     estat_actual = WAIT_ACK_SUBS;
+    alarm(t);
 
     /* Paquet de resposta amb la confirmacio del servidor */
     memset(&respostaUDP, 0, sizeof(respostaUDP));
