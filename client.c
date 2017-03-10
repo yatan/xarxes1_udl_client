@@ -214,9 +214,6 @@ void parsejar_arguments(int argc, char **argv) {
     int index;
     int c;
 
-    /* Registre inicial de la alarma per al timer */
-    signal(SIGALRM, signalarm);
-
     while ((c = getopt(argc, argv, "dc:")) != -1)
         switch (c) {
             case 'd':
@@ -226,17 +223,13 @@ void parsejar_arguments(int argc, char **argv) {
                 strcpy(fitxer_conf, optarg);
                 break;
             case '?':
-                if (optopt == 'c')
-                {
+                if (optopt == 'c') {
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                     exit(-1);
-                }
-                else if (isprint(optopt))
-                {
+                } else if (isprint(optopt)) {
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                     exit(-1);
-                }
-                else
+                } else
                     fprintf(stderr,
                             "Unknown option character `\\x%x'.\n",
                             optopt);
@@ -252,6 +245,9 @@ void parsejar_arguments(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+    /* Registre inicial de la alarma per al timer */
+    signal(SIGALRM, signalarm);
+
     parsejar_arguments(argc, argv);
     lectura_configuracio();
     subscripcio();
