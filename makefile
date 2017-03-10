@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS= -ansi -pedantic -Wall
 
 client: client.o client.o
-     $(CC) -o client client.o client.o -I.
+     $(CC) $(CFLAGS) -o client client.o client.o

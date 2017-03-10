@@ -206,13 +206,10 @@ void subscripcio() {
 
 }
 
-void registrarAlarma() {
-    /* Registre de la alarma per al timer */
-    signal(SIGALRM, signalarm);
-}
-
 int main(int argc, char **argv) {
-    registrarAlarma();
+    /* Registre inicial de la alarma per al timer */
+    signal(SIGALRM, signalarm);
+
     lectura_configuracio();
     subscripcio();
     return 0;
