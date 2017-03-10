@@ -116,8 +116,7 @@ void signalarm(int sig) {
             n_cont = 0;
             alarm(t);
         }
-    }
-    else{
+    } else {
         printf("No s'ha pogut contactar amb el servidor.");
         exit(-3);
     }
@@ -187,6 +186,28 @@ void lectura_configuracio() {
     fclose(fp);
 }
 
+void wait_ack_subscripcio(int sock) {
+    int a;
+    struct PDU_udp respostaUDP;
+
+    /* Paquet de resposta amb la confirmacio del servidor */
+    memset(&respostaUDP, 0, sizeof(respostaUDP));
+    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
+    if (a < 0) {
+        fprintf(stderr, "Error al recvfrom\n");
+        perror("Error ");
+        exit(-2);
+    }
+    /* dadcli[a] = '\0'; */
+    printf("Resposta: %i\n", respostaUDP.type);
+
+    /*
+     * Verificar el packet rebut
+     */
+
+    estat_actual = SUBSCRIBED;
+}
+
 void subscripcio() {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -196,7 +217,7 @@ void subscripcio() {
     int a;
     /* char dadcli[LONGDADES]; */
     struct PDU_udp enviamentUDP;
-    struct PDU_udp respostaUDP;
+    /* struct PDU_udp respostaUDP; */
 
     Host = gethostbyname("localhost");
 
@@ -229,17 +250,7 @@ void subscripcio() {
     /* Canvi estat a WAIT_ACK_SUBS */
     estat_actual = WAIT_ACK_SUBS;
     alarm(t);
-
-    /* Paquet de resposta amb la confirmacio del servidor */
-    memset(&respostaUDP, 0, sizeof(respostaUDP));
-    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
-    if (a < 0) {
-        fprintf(stderr, "Error al recvfrom\n");
-        perror("Error ");
-        exit(-2);
-    }
-    /* dadcli[a] = '\0'; */
-    printf("Resposta: %i\n", respostaUDP.type);
+    wait_ack_subscripcio(sock);
 
 }
 
