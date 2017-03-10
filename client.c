@@ -43,6 +43,8 @@
 
 #define LONGDADES 100
 
+/* Global variables */
+int debug = 0;
 char fitxer_conf[30] = "client.cfg";
 unsigned char estat_actual = NOT_SUBSCRIBED;
 
@@ -99,7 +101,8 @@ void lectura_configuracio() {
 
     fp = fopen(fitxer_conf, "r");
     if (fp == NULL) {
-        printf("No es pot obrir el fitxer per registrar dades\n");
+        perror("ERROR ");
+        exit(-1);
     }
 
 
@@ -207,11 +210,10 @@ void subscripcio() {
 
 }
 
-int main(int argc, char **argv) {
+void parsejar_arguments(int argc, char **argv) {
     int index;
     int c;
-    int debug = 0;
-    char configuracio[50] = "";
+
     /* Registre inicial de la alarma per al timer */
     signal(SIGALRM, signalarm);
 
@@ -221,28 +223,36 @@ int main(int argc, char **argv) {
                 debug = 1;
                 break;
             case 'c':
-                strcpy(configuracio, optarg);
+                strcpy(fitxer_conf, optarg);
                 break;
             case '?':
                 if (optopt == 'c')
+                {
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                    exit(-1);
+                }
                 else if (isprint(optopt))
+                {
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                    exit(-1);
+                }
                 else
                     fprintf(stderr,
                             "Unknown option character `\\x%x'.\n",
                             optopt);
-                return 1;
             default:
                 abort();
         }
 
-    printf ("debug = %d, cvalue = %s\n",
-            debug, configuracio);
+    printf("debug = %d, cvalue = %s\n",
+           debug, fitxer_conf);
 
     for (index = optind; index < argc; index++)
-        printf ("Non-option argument %s\n", argv[index]);
+        printf("Non-option argument %s\n", argv[index]);
+}
 
+int main(int argc, char **argv) {
+    parsejar_arguments(argc, argv);
     lectura_configuracio();
     subscripcio();
     return 0;
