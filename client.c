@@ -148,9 +148,33 @@ void setTimeout(int milliseconds) {
 }
 
 void *thread_hello(struct socketHELLO *args) {
+    /* Thread independent per anar enviant HELLO's cada v segons */
+    int a;
     struct socketHELLO *socketHELLO2 = (struct socketHELLO *) args;
-    while (estat_actual != SUBSCRIBED) {
+    struct PDU_udp packetHELLO;
+    /* Paquet HELLO UDP */
+    packetHELLO.type = HELLO;
+    strcpy(packetHELLO.mac, "12344566");
+    strcpy(packetHELLO.aleatori, "00000000");
+    strcpy(packetHELLO.dades, "");
+
+    while (estat_actual == SUBSCRIBED) {
         printf("Enviar packet HELLO%i\n", socketHELLO2->sock);
+        /* Paquet HELLO amb el servidor */
+        a = sendto(socketHELLO2->sock,
+                   &packetHELLO,
+                   sizeof(packetHELLO),
+                   0,
+                   (struct sockaddr *) &socketHELLO2->Direccio,
+                   sizeof(socketHELLO2->Direccio));
+        if (a < 0) {
+            fprintf(stderr, "Error al sendto\n");
+            perror("Error ");
+            exit(-2);
+        }
+        printf("Enviament HELLO\n");
+        /* RECV del paquet HELLO i
+         * posterior comprobacio */
         setTimeout(v * 1000);
     }
     return 0;
