@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/mman.h>
+#include <pthread.h>
 
 /* Tipus paquet subscripcio */
 #define SUBS_REQ 0x00
@@ -55,6 +56,7 @@ int u = 3;
 int n = 8;
 int o = 3;
 
+/* Contadors per als temporitzadors de subscripcio */
 int u_cont = 0;
 int n_cont = 0;
 int o_cont = 0;
@@ -98,6 +100,11 @@ struct PDU_udp {
     char dades[80];
 };
 
+struct socketHELLO {
+    int sock;
+    struct sockaddr_in Direccio;
+};
+
 void signalarm(int sig) {
     signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
     printf("Alarm !! o:%i n:%i \n", o_cont, n_cont);
@@ -120,9 +127,30 @@ void signalarm(int sig) {
         printf("No s'ha pogut contactar amb el servidor.");
         exit(-3);
     }
-
 }
 
+void setTimeout(int milliseconds) {
+
+    int milliseconds_since = clock() * 1000 / CLOCKS_PER_SEC;
+    int end = milliseconds_since + milliseconds;
+
+    if (milliseconds <= 0) {
+        fprintf(stderr, "Count milliseconds for timeout is less or equal to 0\n");
+        return;
+    }
+
+    /* wait while until needed time comes*/
+    do {
+        milliseconds_since = clock() * 1000 / CLOCKS_PER_SEC;
+    } while (milliseconds_since <= end);
+}
+
+
+void *thread_hello() {
+    setTimeout(5000);
+    printf("Enviar packet HELLO\n");
+    return 0;
+}
 
 void lectura_configuracio() {
     FILE *fp;
@@ -209,6 +237,7 @@ void wait_ack_subscripcio(int sock) {
 }
 
 void subscripcio() {
+    pthread_t Hilo;
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     struct hostent *Host;
@@ -232,6 +261,10 @@ void subscripcio() {
     Direccion.sin_port = htons(Puerto);
 
 
+    if (pthread_create(&Hilo, NULL, &thread_hello, NULL)) {
+        perror("ERROR creating thread.");
+    }
+
     /* Paquet PDU SUBS_REQ */
     enviamentUDP.type = SUBS_REQ;
     strcpy(enviamentUDP.mac, "12344566");
@@ -247,11 +280,11 @@ void subscripcio() {
     }
     printf("Enviament: %i\n", enviamentUDP.type);
 
-    /* Canvi estat a WAIT_ACK_SUBS */
+    /* Canvi estat a WAIT_ACK_SUBS inicialitzem els
+     * temporitzadors i esperem fins a que rebem un paquet de resposta*/
     estat_actual = WAIT_ACK_SUBS;
     alarm(t);
     wait_ack_subscripcio(sock);
-
 }
 
 void parsejar_arguments(int argc, char **argv) {
