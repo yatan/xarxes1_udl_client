@@ -56,6 +56,8 @@ int u = 3;
 int n = 8;
 int o = 3;
 
+int v = 2;
+
 /* Contadors per als temporitzadors de subscripcio */
 int u_cont = 0;
 int n_cont = 0;
@@ -145,10 +147,11 @@ void setTimeout(int milliseconds) {
     } while (milliseconds_since <= end);
 }
 
-
 void *thread_hello() {
-    setTimeout(5000);
-    printf("Enviar packet HELLO\n");
+    while (estat_actual == SUBSCRIBED) {
+        printf("Enviar packet HELLO\n");
+        setTimeout(v * 1000);
+    }
     return 0;
 }
 
@@ -234,6 +237,11 @@ void wait_ack_subscripcio(int sock) {
      */
 
     estat_actual = SUBSCRIBED;
+
+    /* Comença a enviar HELLO */
+    if (pthread_create(&Hilo, NULL, &thread_hello, NULL)) {
+        perror("ERROR creating thread.");
+    }
 }
 
 void subscripcio() {
@@ -259,11 +267,6 @@ void subscripcio() {
     Direccion.sin_family = AF_INET;
     Direccion.sin_addr.s_addr = (((struct in_addr *) Host->h_addr)->s_addr);
     Direccion.sin_port = htons(Puerto);
-
-
-    if (pthread_create(&Hilo, NULL, &thread_hello, NULL)) {
-        perror("ERROR creating thread.");
-    }
 
     /* Paquet PDU SUBS_REQ */
     enviamentUDP.type = SUBS_REQ;
