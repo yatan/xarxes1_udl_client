@@ -147,9 +147,10 @@ void setTimeout(int milliseconds) {
     } while (milliseconds_since <= end);
 }
 
-void *thread_hello() {
-    while (estat_actual == SUBSCRIBED) {
-        printf("Enviar packet HELLO\n");
+void *thread_hello(struct socketHELLO *args) {
+    struct socketHELLO *socketHELLO2 = (struct socketHELLO *) args;
+    while (estat_actual != SUBSCRIBED) {
+        printf("Enviar packet HELLO%i\n", socketHELLO2->sock);
         setTimeout(v * 1000);
     }
     return 0;
@@ -217,9 +218,12 @@ void lectura_configuracio() {
     fclose(fp);
 }
 
-void wait_ack_subscripcio(int sock) {
+void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
     int a;
+    pthread_t Hilo;
     struct PDU_udp respostaUDP;
+    struct socketHELLO *socketHELLO1;
+
 
     /* Paquet de resposta amb la confirmacio del servidor */
     memset(&respostaUDP, 0, sizeof(respostaUDP));
@@ -239,13 +243,17 @@ void wait_ack_subscripcio(int sock) {
     estat_actual = SUBSCRIBED;
 
     /* Comença a enviar HELLO */
-    if (pthread_create(&Hilo, NULL, &thread_hello, NULL)) {
+    /*memset(&socketHELLO1, 0, sizeof(socketHELLO1));*/
+    socketHELLO1 = (struct socketHELLO *) malloc(sizeof(socketHELLO1));
+    socketHELLO1->sock = sock;
+    socketHELLO1->Direccio = Direccio;
+
+    if (pthread_create(&Hilo, NULL, (void *(*)(void *)) thread_hello, (void *) &socketHELLO1)) {
         perror("ERROR creating thread.");
     }
 }
 
 void subscripcio() {
-    pthread_t Hilo;
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     struct hostent *Host;
@@ -287,7 +295,7 @@ void subscripcio() {
      * temporitzadors i esperem fins a que rebem un paquet de resposta*/
     estat_actual = WAIT_ACK_SUBS;
     alarm(t);
-    wait_ack_subscripcio(sock);
+    wait_ack_subscripcio(sock, Direccion);
 }
 
 void parsejar_arguments(int argc, char **argv) {
