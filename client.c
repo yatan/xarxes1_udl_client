@@ -321,14 +321,26 @@ void parsejar_arguments(int argc, char **argv) {
         printf("Non-option argument %s\n", argv[index]);
 }
 
-void* lectura_consola(){
+void print_stats() {
+    printf("Client Stats\n");
+    printf("-------------\n");
+    printf("MAC: %s\n", clientC.mac);
+    printf("Nom: %s\n", clientC.id);
+    printf("Situacio: %s\n", clientC.situation);
+}
+
+void *lectura_consola() {
     char c[20] = "";
-    while(strcmp (c, "quit") != 0){
-        printf("Enter character: ");
+    while (strcmp(c, "quit") != 0) {
         scanf("%s", c);
-        printf("Character entered: %s", c);
+        printf("Command entered: %s\n", c);
+        /* En cas que la comanda sigui stats */
+        if (strcmp(c, "stats") == 0) {
+            print_stats();
+        }
     }
-    printf("EXIT !!!!");
+    /* Comanda = quit */
+    printf("EXIT !!!!\n");
     return 0;
 }
 
