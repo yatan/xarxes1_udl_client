@@ -321,12 +321,28 @@ void parsejar_arguments(int argc, char **argv) {
         printf("Non-option argument %s\n", argv[index]);
 }
 
+void* lectura_consola(){
+    char c[20] = "";
+    while(strcmp (c, "quit") != 0){
+        printf("Enter character: ");
+        scanf("%s", c);
+        printf("Character entered: %s", c);
+    }
+    printf("EXIT !!!!");
+    return 0;
+}
+
 int main(int argc, char **argv) {
+    pthread_t lectura;
     /* Registre inicial de la alarma per al timer */
     signal(SIGALRM, signalarm);
 
     parsejar_arguments(argc, argv);
     lectura_configuracio();
+    if (pthread_create(&lectura, NULL, &lectura_consola, NULL)) {
+        perror("ERROR creating thread.");
+    }
+
     subscripcio();
     return 0;
 }
