@@ -182,7 +182,9 @@ void *thread_hello(struct socketHELLO *args) {
 
 void lectura_configuracio() {
     FILE *fp;
-    char line_buffer[50];
+    char line_separator;
+    char key[20];
+    char value[50];
 
     memset(&clientC, 0, sizeof(struct client));
 
@@ -192,43 +194,31 @@ void lectura_configuracio() {
         exit(-1);
     }
 
-
     /* Name */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    strxfrm(clientC.id, strtok(NULL, " "), 9);
-
+    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    strcpy(clientC.id, value);
 
     /* Situation */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    strxfrm(clientC.situation, strtok(NULL, " "), 13);
-
+    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    strcpy(clientC.situation, value);
 
     /* Elements */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    strxfrm(clientC.elements, strtok(NULL, " "), 8);
+    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    strcpy(clientC.elements, value);
 
     /* MAC */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    strxfrm(clientC.mac, strtok(NULL, " "), 13);
+    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    strcpy(clientC.mac, value);
 
     /* Local-TCP */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    clientC.portTCP = atoi(strtok(NULL, " "));
+    fscanf(fp, "%s %c %d", key, &line_separator, &clientC.portTCP);
 
     /* Server IP */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    strxfrm(clientC.ip, strtok(NULL, " "), 16);
+    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    strcpy(clientC.ip, value);
 
     /* Server UDP port */
-    fgets(line_buffer, sizeof(line_buffer), fp);
-    strtok(line_buffer, " ");
-    clientC.portUDP = atoi(strtok(NULL, " "));
+    fscanf(fp, "%s %c %d", key, &line_separator, &clientC.portUDP);
 
 
     printf("Client %s\n", clientC.id);
