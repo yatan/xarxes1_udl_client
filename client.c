@@ -271,7 +271,7 @@ void subscripcio() {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     struct hostent *Host;
-    int Puerto = 6667;
+    int Puerto = clientC.portUDP;
     struct sockaddr_in Direccion;
     int a;
     /* char dadcli[LONGDADES]; */
