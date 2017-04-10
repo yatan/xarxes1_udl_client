@@ -125,7 +125,7 @@ void signalarm(int sig) {
             n_cont = 0;
             alarm(t);
         }
-    } else {
+    } else if(estat_actual == SUBS_ACK){
         printf("No s'ha pogut contactar amb el servidor.");
         exit(-3);
     }
@@ -150,31 +150,56 @@ void setTimeout(int milliseconds) {
 void *thread_hello(struct socketHELLO *args) {
     /* Thread independent per anar enviant HELLO's cada v segons */
     int a;
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
     struct socketHELLO *socketHELLO2 = (struct socketHELLO *) args;
     struct PDU_udp packetHELLO;
+    struct PDU_udp respostaUDP;
+    struct hostent *Host;
+    struct sockaddr_in Direccion;
+    /* int sock = socket(AF_INET, SOCK_DGRAM, 0); */
     /* Paquet HELLO UDP */
     packetHELLO.type = HELLO;
     strcpy(packetHELLO.mac, "12344566");
     strcpy(packetHELLO.aleatori, "00000000");
     strcpy(packetHELLO.dades, "");
 
-    while (estat_actual == SUBSCRIBED) {
+    Host = gethostbyname("localhost");
+
+    if (Host == NULL) {
+        printf("Error\n");
+    }
+    memset(&Direccion, 0, sizeof(struct sockaddr_in));
+    Direccion.sin_family = AF_INET;
+    Direccion.sin_addr.s_addr = (((struct in_addr *) Host->h_addr)->s_addr);
+    Direccion.sin_port = htons(2345);
+
+    while (1) {
         printf("Enviar packet HELLO%i\n", socketHELLO2->sock);
         /* Paquet HELLO amb el servidor */
-        a = sendto(socketHELLO2->sock,
+        a = sendto(sock,
                    &packetHELLO,
                    sizeof(packetHELLO),
                    0,
-                   (struct sockaddr *) &socketHELLO2->Direccio,
-                   sizeof(socketHELLO2->Direccio));
+                   (struct sockaddr *) &Direccion,
+                   sizeof(Direccion));
         if (a < 0) {
             fprintf(stderr, "Error al sendto\n");
             perror("Error ");
             exit(-2);
         }
-        printf("Enviament HELLO\n");
         /* RECV del paquet HELLO i
          * posterior comprobacio */
+        /* Paquet de resposta amb la confirmacio del servidor */
+        memset(&respostaUDP, 0, sizeof(respostaUDP));
+        a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
+        if (a < 0) {
+            fprintf(stderr, "Error al recvfrom\n");
+            perror("Error ");
+            exit(-2);
+        }
+        /* dadcli[a] = '\0'; */
+        printf("Resposta: %i\n", respostaUDP.type);
+
         setTimeout(v * 1000);
     }
     return 0;
@@ -253,17 +278,19 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
     /*
      * Verificar el packet rebut
      */
+    if (respostaUDP.type == SUBS_ACK) {
+        printf("SUBS_ACK\n");
+        estat_actual = SUBSCRIBED;
+        /* Comença a enviar HELLO */
+        /*memset(&socketHELLO1, 0, sizeof(socketHELLO1));*/
+        socketHELLO1 = (struct socketHELLO *) malloc(sizeof(socketHELLO1));
+        socketHELLO1->sock = sock;
+        socketHELLO1->Direccio = Direccio;
 
-    estat_actual = SUBSCRIBED;
-
-    /* Comença a enviar HELLO */
-    /*memset(&socketHELLO1, 0, sizeof(socketHELLO1));*/
-    socketHELLO1 = (struct socketHELLO *) malloc(sizeof(socketHELLO1));
-    socketHELLO1->sock = sock;
-    socketHELLO1->Direccio = Direccio;
-
-    if (pthread_create(&Hilo, NULL, (void *(*)(void *)) thread_hello, (void *) &socketHELLO1)) {
-        perror("ERROR creating thread.");
+        if (pthread_create(&Hilo, NULL, (void *(*)(void *)) thread_hello, (void *) &socketHELLO1)) {
+            perror("ERROR creating thread.");
+        }
+        pthread_join(Hilo, NULL);
     }
 }
 
@@ -277,6 +304,8 @@ void subscripcio() {
     /* char dadcli[LONGDADES]; */
     struct PDU_udp enviamentUDP;
     /* struct PDU_udp respostaUDP; */
+    char dadesEnviamentUDP[80];
+
 
     Host = gethostbyname("localhost");
 
@@ -292,9 +321,14 @@ void subscripcio() {
 
     /* Paquet PDU SUBS_REQ */
     enviamentUDP.type = SUBS_REQ;
-    strcpy(enviamentUDP.mac, "12344566");
+    strcpy(enviamentUDP.mac, clientC.mac);
     strcpy(enviamentUDP.aleatori, "00000000");
-    strcpy(enviamentUDP.dades, "");
+    /* Preparació dades */
+    strcpy(dadesEnviamentUDP, clientC.id);
+    strcat(dadesEnviamentUDP, ",");
+    strcat(dadesEnviamentUDP, clientC.elements);
+    /* Enviament dades */
+    strcpy(enviamentUDP.dades, dadesEnviamentUDP);
 
     /* Paquet iniciar de sincronitzacio amb el servidor */
     a = sendto(sock, &enviamentUDP, sizeof(enviamentUDP), 0, (struct sockaddr *) &Direccion, sizeof(Direccion));
