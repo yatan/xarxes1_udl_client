@@ -12,6 +12,9 @@
 #include <sys/select.h>
 #include <sys/mman.h>
 #include <pthread.h>
+#include <getopt.h>
+
+#define h_addr h_addr_list[0]
 
 /* Tipus paquet subscripcio */
 #define SUBS_REQ 0x00
@@ -125,7 +128,7 @@ void signalarm(int sig) {
             n_cont = 0;
             alarm(t);
         }
-    } else if(estat_actual == SUBS_ACK){
+    } else if (estat_actual == SUBS_ACK) {
         printf("No s'ha pogut contactar amb el servidor.");
         exit(-3);
     }
@@ -159,7 +162,7 @@ void *thread_hello(struct socketHELLO *args) {
     /* int sock = socket(AF_INET, SOCK_DGRAM, 0); */
     /* Paquet HELLO UDP */
     packetHELLO.type = HELLO;
-    strcpy(packetHELLO.mac, "12344566");
+    strcpy(packetHELLO.mac, clientC.mac);
     strcpy(packetHELLO.aleatori, "00000000");
     strcpy(packetHELLO.dades, "");
 
@@ -191,7 +194,7 @@ void *thread_hello(struct socketHELLO *args) {
          * posterior comprobacio */
         /* Paquet de resposta amb la confirmacio del servidor */
         memset(&respostaUDP, 0, sizeof(respostaUDP));
-        a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
+        a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (unsigned int *) 0);
         if (a < 0) {
             fprintf(stderr, "Error al recvfrom\n");
             perror("Error ");
@@ -266,7 +269,7 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
 
     /* Paquet de resposta amb la confirmacio del servidor */
     memset(&respostaUDP, 0, sizeof(respostaUDP));
-    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (int *) 0);
+    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (unsigned int *) 0);
     if (a < 0) {
         fprintf(stderr, "Error al recvfrom\n");
         perror("Error ");
