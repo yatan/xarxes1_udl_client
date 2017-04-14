@@ -72,7 +72,7 @@ int o_cont = 0;
 struct client {
     char id[9];
     char situation[13];
-    char elements[8];
+    char elements[50];
     char mac[13];
     char ip[16];
     int portTCP;
@@ -110,6 +110,7 @@ struct socketHELLO {
     struct sockaddr_in Direccio;
 };
 
+/* Estructura dades rebudes del paquet SUBS_INFO */
 struct InfoData {
     char aleatori[9];
     char dades[80];
@@ -137,6 +138,10 @@ void signalarm(int sig) {
         printf("No s'ha pogut contactar amb el servidor.");
         exit(-3);
     }
+}
+
+int random_int(int min, int max) {
+    return min + rand() % (max + 1 - min);
 }
 
 void setTimeout(int milliseconds) {
@@ -173,7 +178,7 @@ void *thread_hello(struct socketHELLO *args) {
     strcat(packetHELLO.dades, ",");
     strcat(packetHELLO.dades, clientC.situation);
 
-    Host = gethostbyname("localhost");
+    Host = gethostbyname(clientC.ip);
 
     if (Host == NULL) {
         printf("Error\n");
@@ -181,10 +186,11 @@ void *thread_hello(struct socketHELLO *args) {
     memset(&Direccion, 0, sizeof(struct sockaddr_in));
     Direccion.sin_family = AF_INET;
     Direccion.sin_addr.s_addr = (((struct in_addr *) Host->h_addr)->s_addr);
-    Direccion.sin_port = htons(2345);
+    Direccion.sin_port = htons(clientC.portUDP);
 
     while (1) {
-        printf("Enviar packet HELLO%i\n", socketHELLO2->sock);
+        if (debug)
+            printf("Enviar packet HELLO%i\n", socketHELLO2->sock);
         /* Paquet HELLO amb el servidor */
         a = sendto(sock,
                    &packetHELLO,
@@ -207,9 +213,14 @@ void *thread_hello(struct socketHELLO *args) {
             perror("Error ");
             exit(-2);
         }
-        /* dadcli[a] = '\0'; */
-        printf("Resposta: %i\n", respostaUDP.type);
-
+        /* Informacio paquet HELLO rebut debug */
+        if (debug) {
+            if (respostaUDP.type == HELLO)
+                printf("Resposta [HELLO]: %i\n", respostaUDP.type);
+            else if (respostaUDP.type == HELLO_REJ)
+                printf("Resposta [HELLO_REJ] hello rebutjat\n");
+        }
+        /* Delay entre HELLOs de v segons */
         setTimeout(v * 1000);
     }
     return 0;
@@ -238,7 +249,7 @@ void lectura_configuracio() {
     strcpy(clientC.situation, value);
 
     /* Elements */
-    fscanf(fp, "%s %c %s", key, &line_separator, value);
+    fscanf(fp, "%s %c %[^\n]", key, &line_separator, value);
     strcpy(clientC.elements, value);
 
     /* MAC */
@@ -255,14 +266,15 @@ void lectura_configuracio() {
     /* Server UDP port */
     fscanf(fp, "%s %c %d", key, &line_separator, &clientC.portUDP);
 
-
-    printf("Client %s\n", clientC.id);
-    printf("Situation %s\n", clientC.situation);
-    printf("Elements %s\n", clientC.elements);
-    printf("MAC %s\n", clientC.mac);
-    printf("Local TCP Port: %i\n", clientC.portTCP);
-    printf("Server ip: %s\n", clientC.ip);
-    printf("Server upd port: %i\n", clientC.portUDP);
+    if (debug) {
+        printf("Client %s\n", clientC.id);
+        printf("Situation %s\n", clientC.situation);
+        printf("Elements %s\n", clientC.elements);
+        printf("MAC %s\n", clientC.mac);
+        printf("Local TCP Port: %i\n", clientC.portTCP);
+        printf("Server ip: %s\n", clientC.ip);
+        printf("Server upd port: %i\n", clientC.portUDP);
+    }
 
     fclose(fp);
 }
@@ -270,6 +282,7 @@ void lectura_configuracio() {
 void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
     int a;
     int sockrespostainfo = socket(AF_INET, SOCK_DGRAM, 0);
+    char portAleatori[6];
     pthread_t Hilo;
     struct PDU_udp respostaUDP;
     struct PDU_udp enviarUDP;
@@ -304,7 +317,12 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
         enviarUDP.type = SUBS_INFO;
         strcpy(enviarUDP.mac, clientC.mac);
         strcpy(enviarUDP.aleatori, subsinfo.aleatori);
-        strcpy(enviarUDP.dades, "12345,TEM-0-O;TEM-0-I;PRE-0-O");
+        sprintf(portAleatori, "%d", random_int(1000, 9999));
+
+        strcpy(enviarUDP.dades, portAleatori);
+        strcat(enviarUDP.dades, ",");
+        strcat(enviarUDP.dades, clientC.elements);
+
 
         printf("Enviar packet SUBS_INFO\n");
         /* Dades connexio socket */
@@ -445,6 +463,7 @@ void *lectura_consola() {
     }
     /* Comanda = quit */
     printf("EXIT !!!!\n");
+    exit(0);
     return 0;
 }
 
@@ -452,9 +471,13 @@ int main(int argc, char **argv) {
     pthread_t lectura;
     /* Registre inicial de la alarma per al timer */
     signal(SIGALRM, signalarm);
+    /* Seed per numeros random */
+    srand(time(NULL));
 
     parsejar_arguments(argc, argv);
     lectura_configuracio();
+
+    /* Fil utilitzat per lectura comandes consola */
     if (pthread_create(&lectura, NULL, &lectura_consola, NULL)) {
         perror("ERROR creating thread.");
     }
