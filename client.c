@@ -276,17 +276,24 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
     struct socketHELLO *socketHELLO1;
     struct sockaddr_in Direccion;
 
-
     /* Paquet de resposta amb la confirmacio del servidor */
     memset(&respostaUDP, 0, sizeof(respostaUDP));
-    a = recvfrom(sock, &respostaUDP, sizeof(respostaUDP), 0, (struct sockaddr *) 0, (unsigned int *) 0);
+    a = recvfrom(sock,
+                 &respostaUDP,
+                 sizeof(respostaUDP), 0,
+                 (struct sockaddr *) 0,
+                 (unsigned int *) 0);
     if (a < 0) {
         fprintf(stderr, "Error al recvfrom\n");
         perror("Error ");
         exit(-2);
     }
     /* dadcli[a] = '\0'; */
-    printf("Resposta: Tipo:%i MAC:%s Aleatori:%s Dades:%s\n", respostaUDP.type, respostaUDP.mac, respostaUDP.aleatori, respostaUDP.dades);
+    printf("Resposta: Tipo:%i MAC:%s Aleatori:%s Dades:%s\n",
+           respostaUDP.type,
+           respostaUDP.mac,
+           respostaUDP.aleatori,
+           respostaUDP.dades);
     strcpy(subsinfo.aleatori, respostaUDP.aleatori);
     /*
      * Verificar el packet rebut
@@ -298,7 +305,7 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
         strcpy(enviarUDP.mac, clientC.mac);
         strcpy(enviarUDP.aleatori, subsinfo.aleatori);
         strcpy(enviarUDP.dades, "12345,TEM-0-O;TEM-0-I;PRE-0-O");
-        
+
         printf("Enviar packet SUBS_INFO\n");
         /* Dades connexio socket */
         memset(&Direccion, 0, sizeof(struct sockaddr_in));
@@ -325,12 +332,12 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
         socketHELLO1 = (struct socketHELLO *) malloc(sizeof(socketHELLO1));
         socketHELLO1->sock = sock;
         socketHELLO1->Direccio = Direccio;
-        
+
         if (pthread_create(&Hilo, NULL, (void *(*)(void *)) thread_hello, (void *) &socketHELLO1)) {
             perror("ERROR creating thread.");
         }
         pthread_join(Hilo, NULL);
-        
+
     }
 }
 
@@ -346,9 +353,7 @@ void subscripcio() {
     /* struct PDU_udp respostaUDP; */
     char dadesEnviamentUDP[80];
 
-
     Host = gethostbyname("localhost");
-
     if (Host == NULL) {
         printf("Error\n");
     }
