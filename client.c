@@ -110,6 +110,11 @@ struct socketHELLO {
     struct sockaddr_in Direccio;
 };
 
+struct InfoData {
+    char aleatori[9];
+    char dades[80];
+} subsinfo;
+
 void signalarm(int sig) {
     signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
     printf("Alarm !! o:%i n:%i \n", o_cont, n_cont);
@@ -163,8 +168,10 @@ void *thread_hello(struct socketHELLO *args) {
     /* Paquet HELLO UDP */
     packetHELLO.type = HELLO;
     strcpy(packetHELLO.mac, clientC.mac);
-    strcpy(packetHELLO.aleatori, "00000000");
-    strcpy(packetHELLO.dades, "");
+    strcpy(packetHELLO.aleatori, subsinfo.aleatori);
+    strcpy(packetHELLO.dades, clientC.id);
+    strcat(packetHELLO.dades, ",");
+    strcat(packetHELLO.dades, clientC.situation);
 
     Host = gethostbyname("localhost");
 
@@ -262,9 +269,12 @@ void lectura_configuracio() {
 
 void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
     int a;
+    int sockrespostainfo = socket(AF_INET, SOCK_DGRAM, 0);
     pthread_t Hilo;
     struct PDU_udp respostaUDP;
+    struct PDU_udp enviarUDP;
     struct socketHELLO *socketHELLO1;
+    struct sockaddr_in Direccion;
 
 
     /* Paquet de resposta amb la confirmacio del servidor */
@@ -276,24 +286,51 @@ void wait_ack_subscripcio(int sock, struct sockaddr_in Direccio) {
         exit(-2);
     }
     /* dadcli[a] = '\0'; */
-    printf("Resposta: %i\n", respostaUDP.type);
-
+    printf("Resposta: Tipo:%i MAC:%s Aleatori:%s Dades:%s\n", respostaUDP.type, respostaUDP.mac, respostaUDP.aleatori, respostaUDP.dades);
+    strcpy(subsinfo.aleatori, respostaUDP.aleatori);
     /*
      * Verificar el packet rebut
      */
     if (respostaUDP.type == SUBS_ACK) {
         printf("SUBS_ACK\n");
+        /* enviar SUBS_INFO amb les dades rebudes */
+        enviarUDP.type = SUBS_INFO;
+        strcpy(enviarUDP.mac, clientC.mac);
+        strcpy(enviarUDP.aleatori, subsinfo.aleatori);
+        strcpy(enviarUDP.dades, "12345,TEM-0-O;TEM-0-I;PRE-0-O");
+        
+        printf("Enviar packet SUBS_INFO\n");
+        /* Dades connexio socket */
+        memset(&Direccion, 0, sizeof(struct sockaddr_in));
+        Direccion.sin_family = AF_INET;
+        Direccion.sin_addr.s_addr = Direccio.sin_addr.s_addr;
+        Direccion.sin_port = htons(atoi(respostaUDP.dades));
+        /* Paquet SUBS_INFO amb la resposta del servidor */
+        a = sendto(sockrespostainfo,
+                   &enviarUDP,
+                   sizeof(enviarUDP),
+                   0,
+                   (struct sockaddr *) &Direccion,
+                   sizeof(Direccion));
+        if (a < 0) {
+            fprintf(stderr, "Error al sendto\n");
+            perror("Error ");
+            exit(-2);
+        }
+        printf("Enviament SUBS_INFO\n");
+
         estat_actual = SUBSCRIBED;
         /* Comença a enviar HELLO */
         /*memset(&socketHELLO1, 0, sizeof(socketHELLO1));*/
         socketHELLO1 = (struct socketHELLO *) malloc(sizeof(socketHELLO1));
         socketHELLO1->sock = sock;
         socketHELLO1->Direccio = Direccio;
-
+        
         if (pthread_create(&Hilo, NULL, (void *(*)(void *)) thread_hello, (void *) &socketHELLO1)) {
             perror("ERROR creating thread.");
         }
         pthread_join(Hilo, NULL);
+        
     }
 }
 
@@ -345,7 +382,7 @@ void subscripcio() {
     /* Canvi estat a WAIT_ACK_SUBS inicialitzem els
      * temporitzadors i esperem fins a que rebem un paquet de resposta*/
     estat_actual = WAIT_ACK_SUBS;
-    alarm(t);
+    /* alarm(t); */
     wait_ack_subscripcio(sock, Direccion);
 }
 
