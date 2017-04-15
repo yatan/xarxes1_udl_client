@@ -160,6 +160,25 @@ void setTimeout(int milliseconds) {
     } while (milliseconds_since <= end);
 }
 
+const char *retorna_estat(int estat) {
+    if (estat == 0xa0)
+        return "DISCONNECTED";
+    else if (estat == 0xa1)
+        return "NOT_SUBSCRIBED";
+    else if (estat == 0xa2)
+        return "WAIT_ACK_SUBS";
+    else if (estat == 0xa3)
+        return "WAIT ACK INFO";
+    else if (estat == 0xa4)
+        return "SUBSCRIBED";
+    else if (estat == 0xa5)
+        return "SEND HELLO";
+    else if (estat == 0xa6)
+        return "WAIT INFO";
+    else
+        return "UNDEFINED STATUS";
+}
+
 void *thread_hello(struct socketHELLO *args) {
     /* Thread independent per anar enviant HELLO's cada v segons */
     int a;
@@ -449,6 +468,7 @@ void print_stats() {
     printf("MAC: %s\n", clientC.mac);
     printf("Nom: %s\n", clientC.id);
     printf("Situacio: %s\n", clientC.situation);
+    printf("Estat actual: %s\n", retorna_estat(estat_actual));
 }
 
 void *lectura_consola() {
