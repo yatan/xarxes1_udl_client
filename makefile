@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -ansi -pedantic -Wall -lpthread -g
+CFLAGS= -ansi -pedantic -Wall -lpthread
 
-client: client.o client.o
-     $(CC) $(CFLAGS) -o client client.o client.o
+client:
+				$(CC) client.c -o client $(CFLAGS)
